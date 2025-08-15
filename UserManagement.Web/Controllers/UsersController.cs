@@ -11,9 +11,21 @@ public class UsersController : Controller
     public UsersController(IUserService userService) => _userService = userService;
 
     [HttpGet]
-    public ViewResult List()
+    public ViewResult List(string? status)
     {
-        var items = _userService.GetAll().Select(p => new UserListItemViewModel
+        var users = _userService.GetAll();
+
+        if (!string.IsNullOrEmpty(status)){
+            status = status.ToLower();
+            users = status switch
+            {
+                "active" => users.Where(p => p.IsActive),
+                "inactive" => users.Where(p => !p.IsActive),
+                _ => users
+            };
+        }
+
+        var items = users.Select(p => new UserListItemViewModel
         {
             Id = p.Id,
             Forename = p.Forename,
@@ -29,4 +41,7 @@ public class UsersController : Controller
 
         return View(model);
     }
+
+    
+
 }
