@@ -11,6 +11,7 @@
                 <th>Surname</th>
                 <th>Email</th>
                 <th>Account Active</th>
+                <th>Date of Birth</th>
                 <th style="width: 1px;"></th>
             </tr>
         </thead>
@@ -32,6 +33,9 @@
                     </td>
                     <td>
                         @(item.IsActive ? "Yes" : "No")
+                    </td>
+                    <td>
+                        @(item.DateOfBirth.ToString("dd/MM/yyyy"))
                     </td>
                     <td>
                         <div class="dropdown">
