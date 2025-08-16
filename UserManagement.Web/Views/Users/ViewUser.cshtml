@@ -1,0 +1,46 @@
+﻿@model UserManagement.Web.Models.Users.UserListViewModel
+
+<h2> View User</h2>
+
+
+<div class="table-responsive">
+
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Id</th>
+				<th>Forename</th>
+				<th>Surname</th>
+				<th>Email</th>
+				<th>Account Active</th>
+				<th>Date of Birth</th>
+				<th style="width: 1px;"></th>
+			</tr>
+		</thead>
+		<tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>
+                        @item.Id
+                    </td>
+                    <td>
+                        @item.Forename
+                    </td>
+                    <td>
+                        @item.Surname
+                    </td>
+                    <td>
+                        @item.Email
+                    </td>
+                    <td>
+                        @(item.IsActive ? "Yes" : "No")
+                    </td>
+                    <td>
+                        @(item.DateOfBirth.ToString("dd/MM/yyyy"))
+                    </td>
+				</tr>
+				}
+		</tbody>
+	</table>
+</div>
