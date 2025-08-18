@@ -29,5 +29,13 @@ public class UserService : IUserService
         _dataAccess.Create(user);
     }
 
+    public void UpdateUser(User user)
+    {
+        _dataAccess.Update(user);
+    }
 
+    public void DeleteUser(User user)
+    {
+        _dataAccess.Delete(user);
+    }
 }

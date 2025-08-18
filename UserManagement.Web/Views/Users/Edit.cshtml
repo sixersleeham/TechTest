@@ -1,0 +1,43 @@
+﻿@model UserManagement.Web.Models.Users.UserListItemViewModel
+
+<h2> Edit User</h2>
+
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Edit" method="post">
+	<input type="hidden" asp-for="Id" />
+
+	<div class="form-control-lg">
+		<label asp-for="Forename"></label>
+		<input asp-for="Forename" class="form-control" />
+		<span asp-validation-for="Forename" class="text-danger"></span>
+	</div>
+
+
+	<div class="form-control-lg">
+		<label asp-for="Surname"></label>
+		<input asp-for="Surname" class="form-control" />
+		<span asp-validation-for="Surname" class="text-danger"></span>
+	</div>
+
+
+	<div class="form-control-lg">
+		<label asp-for="Email"></label>
+		<input asp-for="Email" class="form-control" type="email" />
+		<span asp-validation-for="Email" class="text-danger"></span>
+	</div>
+
+
+	<div class="form-control-lg">
+		<label asp-for="DateOfBirth">Date of Birth</label>
+		<input asp-for="DateOfBirth" class="form-control" type="date" />
+		<span asp-validation-for="DateOfBirth" class="text-danger"></span>
+	</div>
+
+	<div class="form-control-lg">
+		<label asp-for="IsActive">Is Active</label>
+		<input asp-for="IsActive" type="checkbox"/>
+		<span asp-validation-for="IsActive" class="text-danger"></span>
+	</div>
+
+	<button type="submit" class="btn-primary">Update</button>
+</form>

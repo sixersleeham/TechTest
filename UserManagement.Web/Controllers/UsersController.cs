@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using AspNetCoreGeneratedDocument;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Interfaces;
 using UserManagement.Web.Models.Users;
@@ -16,21 +17,94 @@ public class UsersController : Controller
     [HttpGet("")]
     public ViewResult List(string? status)
     {
-        var users = !string.IsNullOrEmpty(status) ? _userService.FilterByActive(status == "active") : _userService.GetAll();
+        var users = (status == "active" || status == "inactive") ?
+            _userService.FilterByActive(status == "active") : _userService.GetAll();
 
-        var model = GetModelFromUserList(users);
+        var items = users.Select(p => new UserListItemViewModel
+        {
+            Id = p.Id,
+            Forename = p.Forename,
+            Surname = p.Surname,
+            Email = p.Email,
+            IsActive = p.IsActive,
+            DateOfBirth = p.DateOfBirth
+        });
+
+        var model = new UserListViewModel
+        {
+            Items = items.ToList()
+        };
 
         return View(model);
     }
 
     [HttpGet("viewuser/{id}")]
-    public ViewResult ViewUser(int id)
+    public IActionResult ViewUser(long id)
     {
-        var user = _userService.GetAll().Where(p => p.Id == id);
+        var model = GetUserModelById(id);
 
-        var model = GetModelFromUserList(user);
+        if (model == null)
+            return NotFound();
 
         return View(model);
+    }
+
+    [HttpGet("edit/{id}")]
+    public IActionResult Edit(long id)
+    {
+        var model = GetUserModelById(id);
+
+        if (model == null)
+            return NotFound();
+
+        return View(model);
+    }
+
+    [HttpPost("edit/{id}")]
+    public IActionResult Edit(UserListItemViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var newUser = new User
+        {
+            Id = model.Id,
+            Forename = model.Forename,
+            Surname = model.Surname,
+            Email = model.Email,
+            IsActive = model.IsActive,
+            DateOfBirth = model.DateOfBirth
+        };
+
+        _userService.UpdateUser(newUser);
+
+        return Redirect("/users");
+    }
+
+    [HttpGet("delete/{id}")]
+    public IActionResult Delete(long id)
+    {
+        var model = GetUserModelById(id);
+
+        if (model == null)
+            return NotFound();
+
+        return View(model);
+    }
+
+    [HttpPost("delete/{id}")]
+    public IActionResult DeleteUser(long id)
+    {
+        var newUser = _userService.GetAll().FirstOrDefault(p => p.Id == id);
+
+        if(newUser == null)
+            return NotFound();
+
+        _userService.DeleteUser(newUser);
+
+        return Redirect("/users");
     }
 
     [HttpGet("add")]
@@ -61,23 +135,23 @@ public class UsersController : Controller
         return Redirect("/users");
     }
 
-    private UserListViewModel GetModelFromUserList(IEnumerable<Models.User> users)
+    private UserListItemViewModel? GetUserModelById(long id)
     {
-        var items = users.Select(p => new UserListItemViewModel
-        {
-            Id = p.Id,
-            Forename = p.Forename,
-            Surname = p.Surname,
-            Email = p.Email,
-            IsActive = p.IsActive,
-            DateOfBirth = p.DateOfBirth
-        });
+        var user = _userService.GetAll().FirstOrDefault(p => p.Id == id);
 
-        var model = new UserListViewModel
+        if (user == null)
+            return null;
+
+        var item = new UserListItemViewModel
         {
-            Items = items.ToList()
+            Id = user.Id,
+            Forename = user.Forename,
+            Surname = user.Surname,
+            Email = user.Email,
+            IsActive = user.IsActive,
+            DateOfBirth = user.DateOfBirth
         };
 
-        return model;
-    }    
+        return item;
+    }
 }
