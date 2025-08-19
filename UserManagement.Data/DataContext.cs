@@ -35,17 +35,17 @@ public class DataContext : DbContext, IDataContext
 
         model.Entity<Log>().HasData(new[]
         {
-            new Log { Id = 1, UserId = 1, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 2, UserId = 2, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 3, UserId = 3, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 4, UserId = 4, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 5, UserId = 5, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 6, UserId = 6, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 7, UserId = 7, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 8, UserId = 8, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 9, UserId = 9, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 10, UserId = 10, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
-            new Log { Id = 11, UserId = 11, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = DateTime.Now }, 
+            new Log { Id = 1, UserId = 1, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 2, UserId = 2, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 3, UserId = 3, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 4, UserId = 4, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 5, UserId = 5, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 6, UserId = 6, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 7, UserId = 7, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 8, UserId = 8, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 9, UserId = 9, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 10, UserId = 10, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
+            new Log { Id = 11, UserId = 11, Owner = "Admin", Action = "Add", Change = "N/A", TimeStamp = new DateTime(2000, 01, 01) }, 
         });
     }
 
@@ -58,18 +58,24 @@ public class DataContext : DbContext, IDataContext
 
     public void Create<TEntity>(TEntity entity) where TEntity : class
     {
+        if(entity == null)
+            throw new ArgumentNullException(nameof(entity));
         base.Add(entity);
         SaveChanges();
     }
 
     public new void Update<TEntity>(TEntity entity) where TEntity : class
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
         base.Update(entity);
         SaveChanges();
     }
 
     public void Delete<TEntity>(TEntity entity) where TEntity : class
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
         base.Remove(entity);
         SaveChanges();
     }

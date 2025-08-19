@@ -46,13 +46,17 @@ public class UserService : IUserService
 
     public bool UpdateUser(User user)
     {
-        var existingUser = GetAll().SingleOrDefault(u => u.Id == user.Id);
+        var allUsers = GetAll();
+
+        var context = new ValidationContext(user);
+        Validator.ValidateObject(user, context, validateAllProperties: true);
+
+        var existingUser = allUsers.SingleOrDefault(u => u.Id == user.Id);
 
         if (existingUser == null)
             throw new ArgumentException($"User with ID {user.Id} not found.");
 
-        var existingEmail = _dataAccess.GetAll<User>()
-        .SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
+        var existingEmail = allUsers.SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
 
         if (existingEmail != null)
             throw new ValidationException("Email already exists.");
@@ -70,14 +74,15 @@ public class UserService : IUserService
 
     public bool DeleteUser(long id)
     {
-        var user = GetAll().FirstOrDefault(p => p.Id == id);
+        var users = GetAll();
+        var userToDelete = users.FirstOrDefault(p => p.Id == id);
 
-        if (user == null)
+        if (userToDelete == null)
         {
-            throw new ArgumentException("$User with ID {Id} not found.");
+            throw new ArgumentException($"User with ID {id} not found.");
         }
 
-        _dataAccess.Delete(user);
+        _dataAccess.Delete(userToDelete);
 
         return true;
     }

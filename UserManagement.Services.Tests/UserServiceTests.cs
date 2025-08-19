@@ -27,12 +27,15 @@ public class UserServiceTests
     [Fact]
     public void AddUser_WhenCalled_ShouldSaveUserToDatabase()
     {
-        var mockUsers = new List<User>();
-        var service = CreateService();
-        _dataContext.Setup(d => d.GetAll<User>()).Returns(mockUsers.AsQueryable);
-        _dataContext.Setup(d => d.Create(It.IsAny<User>())).Callback<User>(u => mockUsers.Add(u));
+        var options = new DbContextOptionsBuilder<DataContext>()
+            .UseInMemoryDatabase(databaseName: "AddUserTest")
+            .Options;
 
-        var userToAdd = SetupSingleUser();
+        using var context = new DataContext(options);
+
+        var service = new UserService(context);
+
+        var userToAdd = SetupSingleUser(99);
 
         service.AddUser(userToAdd);
 
@@ -55,9 +58,7 @@ public class UserServiceTests
     [Fact]
     public void AddUser_MissingRequiredFields_ShouldThrowValidationException()
     {
-        var user = SetupSingleUser();
-
-        user.Email = null!;
+        var user = SetupSingleUser(email: string.Empty);
 
         var service = CreateService();
 
@@ -82,6 +83,29 @@ public class UserServiceTests
         var ex = Assert.Throws<ValidationException>(() => service.AddUser(newUser));
         Assert.Contains("Email", ex.Message);
     }
+
+    [Fact]
+    public void AddUser_IncorrectEmailFormat_ShouldThrowValidationException()
+    {
+        var user = SetupSingleUser(email: "roy");
+
+        var service = CreateService();
+
+        var ex = Assert.Throws<ValidationException>(() => service.AddUser(user));
+        Assert.Contains("Email", ex.Message);
+    }
+
+    [Fact]
+    public void AddUser_ForenameContainsIncorrectCharacters_ThrowValidationException()
+    {
+        var user = SetupSingleUser(forename: "R0y");
+
+        var service = CreateService();
+
+        var ex = Assert.Throws<ValidationException>(() => service.AddUser(user));
+        Assert.Contains("Forename", ex.Message);
+    }
+
 
     [Fact]
     public void UpdateUser_UserExists_ShouldUpdateAndSaveChanges()
@@ -140,6 +164,50 @@ public class UserServiceTests
     }
 
     [Fact]
+    public void UpdateUser_IncorrectEmailFormat_ThrowValidationException()
+    {
+        List<User> Mocklist = new List<User>{
+            SetupSingleUser()
+        };
+
+        _dataContext.Setup(d => d.GetAll<User>()).Returns(Mocklist.AsQueryable);
+
+        var service = CreateService();
+
+        var existingUser = service.GetAll().SingleOrDefault(u => u.Id == 1);
+
+        if (existingUser != null)
+        {
+            existingUser.Email = "roy";
+
+            var ex = Assert.Throws<ValidationException>(() => service.UpdateUser(existingUser));
+            Assert.Contains("Email", ex.Message);
+        }
+    }
+
+    [Fact]
+    public void UpdateUser_ForenameContainsIncorrectCharacters_ThrowValidationException()
+    {
+        List<User> Mocklist = new List<User>{
+            SetupSingleUser()
+        };
+
+        _dataContext.Setup(d => d.GetAll<User>()).Returns(Mocklist.AsQueryable);
+
+        var service = CreateService();
+
+        var existingUser = service.GetAll().SingleOrDefault(u => u.Id == 1);
+
+        if (existingUser != null)
+        {
+            existingUser.Forename = "R0y";
+
+            var ex = Assert.Throws<ValidationException>(() => service.UpdateUser(existingUser));
+            Assert.Contains("Forename", ex.Message);
+        }
+    }
+
+    [Fact]
     public void DeleteUser_WhenUserExists_ShouldRemoveUserFromDatabase()
     {
         var options = new DbContextOptionsBuilder<DataContext>()
@@ -171,6 +239,33 @@ public class UserServiceTests
 
         var ex = Assert.Throws<ArgumentException>(() => service.DeleteUser(1));
         Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void FilterUserByActive_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedActiveState()
+    {
+        List<User> userList = new List<User>
+        {
+            SetupSingleUser(id: 1, isActive: true),
+            SetupSingleUser(id: 2, isActive: false),
+            SetupSingleUser(id: 3, isActive: true),
+            SetupSingleUser(id: 4, isActive: true),
+            SetupSingleUser(id: 5, isActive: true),
+            SetupSingleUser(id: 6, isActive: true),
+            SetupSingleUser(id: 7, isActive: false),
+            SetupSingleUser(id: 8, isActive: true),
+            SetupSingleUser(id: 9, isActive: true),
+            SetupSingleUser(id: 10, isActive: false),
+        };
+
+        var service = CreateService();
+
+        _dataContext.Setup(d => d.GetAll<User>()).Returns(userList.AsQueryable);
+
+        var result = service.FilterByActive(true);
+
+        Assert.Equal(7, result.Count());
+        Assert.All(result, user => Assert.True(user.IsActive));
     }
 
     private IQueryable<User> SetupUsers(string forename = "Johnny", string surname = "User", string email = "juser@example.com", bool isActive = true)

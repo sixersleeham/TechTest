@@ -53,14 +53,6 @@ public class UsersController : Controller
         if (model == null)
             return NotFound();
 
-        var newLog = new Log
-        {
-            UserId = model.Id,
-            Action = "User Viewed",
-            Change = "N/A",
-            TimeStamp = DateTime.Now
-        };
-
         AddNewLog(model.Id, "View", "N/A");
 
         var userDetails = new UserDetailsViewModel
@@ -94,7 +86,7 @@ public class UsersController : Controller
         var existingUser = _userService.GetAll().SingleOrDefault(u => u.Id == model.Id);
 
         if (existingUser == null)
-            return View(model);
+            return NotFound();
 
         string changeLog = BuildEditChangeLog(existingUser, model);
 
@@ -149,7 +141,6 @@ public class UsersController : Controller
 
         var newUser = new User
         {
-            Id = maxId,
             Forename = model.Forename,
             Surname = model.Surname,
             Email = model.Email,
@@ -194,19 +185,19 @@ public class UsersController : Controller
         {
             Id = log.Id,
             UserId = log.UserId,
+            Owner = "Admin",
             Action = log.Action,
             Change = log.Change,
             TimeStamp = log.TimeStamp
         }).ToList();
     }
 
-
-
     private void AddNewLog(long userId, string action, string change)
     {
         var newLog = new Log
         {
             UserId = userId,
+            Owner = "Admin",
             Action = action,
             Change = change,
         };

@@ -8,5 +8,5 @@ public interface IUserLogService
     IEnumerable<Log> FilterAllByUserId(long id);
     IEnumerable<Log> FilterAllByAction(string action);
     void AddLog(Log log);
-    List<Log> GetPaged(int page, int pageSize);
+    IEnumerable<Log> GetPaged(int page, int pageSize);
 }
