@@ -1,0 +1,40 @@
+﻿@model UserManagement.Web.Models.Logs.UserLogEntryViewModel
+
+<h2>Users Logs</h2>
+
+<div class="table-responsive">
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Id</th>
+				<th>User Id</th>
+				<th>Action</th>
+				<th>Time Stamp</th>
+				<th style="width: 1px;"></th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var item in Model.Items)
+			{
+				<tr>
+					<td>
+						@item.Id
+					</td>
+					<td>
+						@item.UserId
+					</td>
+					<td>
+						@item.Action
+					</td>
+					<td>
+						@item.TimeStamp.ToString()
+					</td>
+					<td>
+						<a asp-controller="Logs" asp-action="ViewLog" asp-route-id="@item.Id" class="dropdown-item">View</a>
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</div>
+

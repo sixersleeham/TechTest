@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Linq;
-using AspNetCoreGeneratedDocument;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using System.Text;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Interfaces;
+using UserManagement.Services.Interfaces;
+using UserManagement.Web.Models.Logs;
 using UserManagement.Web.Models.Users;
 
 namespace UserManagement.WebMS.Controllers;
@@ -12,7 +13,12 @@ namespace UserManagement.WebMS.Controllers;
 public class UsersController : Controller
 {
     private readonly IUserService _userService;
-    public UsersController(IUserService userService) => _userService = userService;
+    private readonly IUserLogService _userLogService;
+    public UsersController(IUserService userService, IUserLogService userLogService)
+    {
+        _userService = userService;
+        _userLogService = userLogService;
+    }
 
     [HttpGet("")]
     public ViewResult List(string? status)
@@ -38,15 +44,32 @@ public class UsersController : Controller
         return View(model);
     }
 
-    [HttpGet("viewuser/{id}")]
+    [HttpGet("users/viewuser/{id}")]
     public IActionResult ViewUser(long id)
     {
         var model = GetUserModelById(id);
+        var logs = _userLogService.FilterAllByUserId(id);
 
         if (model == null)
             return NotFound();
 
-        return View(model);
+        var newLog = new Log
+        {
+            UserId = model.Id,
+            Action = "User Viewed",
+            Change = "N/A",
+            TimeStamp = DateTime.Now
+        };
+
+        AddNewLog(model.Id, "View", "N/A");
+
+        var userDetails = new UserDetailsViewModel
+        {
+            User = model,
+            Logs = GetLogEntryModelById(id)
+        };
+
+        return View(userDetails);
     }
 
     [HttpGet("edit/{id}")]
@@ -68,17 +91,23 @@ public class UsersController : Controller
             return View(model);
         }
 
-        var newUser = new User
-        {
-            Id = model.Id,
-            Forename = model.Forename,
-            Surname = model.Surname,
-            Email = model.Email,
-            IsActive = model.IsActive,
-            DateOfBirth = model.DateOfBirth
-        };
+        var existingUser = _userService.GetAll().SingleOrDefault(u => u.Id == model.Id);
 
-        _userService.UpdateUser(newUser);
+        if (existingUser == null)
+            return View(model);
+
+        string changeLog = BuildEditChangeLog(existingUser, model);
+
+        existingUser.Forename = model.Forename;
+        existingUser.Surname = model.Surname;
+        existingUser.Email = model.Email;
+        existingUser.IsActive = model.IsActive;
+        existingUser.DateOfBirth = model.DateOfBirth;
+
+        bool wasUpdated = _userService.UpdateUser(existingUser);
+
+        if(wasUpdated)
+            AddNewLog(model.Id, "Edit", changeLog);
 
         return Redirect("/users");
     }
@@ -97,12 +126,10 @@ public class UsersController : Controller
     [HttpPost("delete/{id}")]
     public IActionResult DeleteUser(long id)
     {
-        var newUser = _userService.GetAll().FirstOrDefault(p => p.Id == id);
+        bool wasDeleted = _userService.DeleteUser(id);
 
-        if(newUser == null)
-            return NotFound();
-
-        _userService.DeleteUser(newUser);
+        if(wasDeleted)
+            AddNewLog(id, "Delete", "User Deleted");
 
         return Redirect("/users");
     }
@@ -130,7 +157,11 @@ public class UsersController : Controller
             DateOfBirth = model.DateOfBirth
         };
 
-        _userService.AddUser(newUser);
+
+        bool wasCreated = _userService.AddUser(newUser);
+
+        if(wasCreated)
+            AddNewLog(maxId, "Add", $"Added User {model.Forename} {model.Surname}");
 
         return Redirect("/users");
     }
@@ -153,5 +184,58 @@ public class UsersController : Controller
         };
 
         return item;
+    }
+
+    private List<UserLogEntryItemViewModel> GetLogEntryModelById(long id)
+    {
+        var logs = _userLogService.FilterAllByUserId(id) ?? Enumerable.Empty<Log>();
+
+        return logs.Select(log => new UserLogEntryItemViewModel
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            Action = log.Action,
+            Change = log.Change,
+            TimeStamp = log.TimeStamp
+        }).ToList();
+    }
+
+
+
+    private void AddNewLog(long userId, string action, string change)
+    {
+        var newLog = new Log
+        {
+            UserId = userId,
+            Action = action,
+            Change = change,
+        };
+
+        _userLogService.AddLog(newLog);
+    }
+
+    private string BuildEditChangeLog(User currentUser, UserListItemViewModel updatedUser)
+    {
+        var sb = new StringBuilder();
+
+        if (currentUser.Forename != updatedUser.Forename)
+            sb.AppendLine($"Forename changed from {currentUser.Forename} to {updatedUser.Forename}");
+
+        if (currentUser.Surname != updatedUser.Surname)
+            sb.AppendLine($"Surename changed from {currentUser.Surname} to {updatedUser.Surname}");
+
+        if (currentUser.Email != updatedUser.Email)
+            sb.AppendLine($"Email changed from {currentUser.Email} to {updatedUser.Email}");
+
+        if (currentUser.IsActive != updatedUser.IsActive)
+            sb.AppendLine($"IsActive changed from {currentUser.IsActive} to {updatedUser.IsActive}");
+
+        if (currentUser.DateOfBirth != updatedUser.DateOfBirth)
+            sb.AppendLine($"Date of Birth changed from {currentUser.DateOfBirth} to {updatedUser.DateOfBirth}");
+
+        if (sb.Length == 0)
+            return "No changes made";
+
+        return sb.ToString();
     }
 }

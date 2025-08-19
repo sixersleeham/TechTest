@@ -1,4 +1,4 @@
-﻿@model UserManagement.Web.Models.Users.UserListViewModel
+﻿@model UserManagement.Web.Models.Users.UserDetailsViewModel
 
 <h2> View User</h2>
 
@@ -18,29 +18,76 @@
 			</tr>
 		</thead>
 		<tbody>
-            @foreach (var item in Model.Items)
-            {
+
                 <tr>
                     <td>
-                        @item.Id
+                        @Model.User.Id
                     </td>
                     <td>
-                        @item.Forename
+                        @Model.User.Forename
                     </td>
                     <td>
-                        @item.Surname
+                        @Model.User.Surname
                     </td>
                     <td>
-                        @item.Email
+                        @Model.User.Email
                     </td>
                     <td>
-                        @(item.IsActive ? "Yes" : "No")
+                        @(Model.User.IsActive ? "Yes" : "No")
                     </td>
                     <td>
-                        @(item.DateOfBirth.ToString("dd/MM/yyyy"))
+                        @(Model.User.DateOfBirth.ToString("dd/MM/yyyy"))
                     </td>
+				<td>
+					<div class="dropdown">
+						<button type="button" class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleActions">
+							Actions
+						</button>
+						<ul class="dropdown-menu" aria-labelledby="btnToggleActions">
+							<li><a asp-controller="users" asp-action="Edit" asp-route-id="@Model.User.Id" class="dropdown-item">Edit</a></li>
+							<li><a asp-controller="users" asp-action="Delete" asp-route-id="@Model.User.Id" class="dropdown-item">Delete</a></li>
+						</ul>
+					</div>
+				</td>
 				</tr>
-				}
+		</tbody>
+	</table>
+</div>
+
+<h2>Logs</h2>
+
+<div class="table-responsive">
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Id</th>
+				<th>User Id</th>
+				<th>Action</th>
+				<th>Time Stamp</th>
+				<th style="width: 1px;"></th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var item in Model.Logs)
+			{
+				<tr>
+					<td>
+						@item.Id
+					</td>
+					<td>
+						@item.UserId
+					</td>
+					<td>
+						@item.Action
+					</td>
+					<td>
+						@item.TimeStamp.ToString()
+					</td>
+					<td>
+						<a asp-controller="Logs" asp-action="ViewLog" asp-route-id="@item.Id" class="dropdown-item">View</a>
+					</td>
+				</tr>
+			}
 		</tbody>
 	</table>
 </div>

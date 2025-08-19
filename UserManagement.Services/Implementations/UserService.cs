@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using UserManagement.Data;
 using UserManagement.Models;
@@ -24,18 +25,60 @@ public class UserService : IUserService
 
     public IEnumerable<User> GetAll() => _dataAccess.GetAll<User>();
 
-    public void AddUser(User user)
+    public bool AddUser(User? user)
     {
+        if(user == null)
+            throw new ArgumentNullException(nameof(user));
+
+        var context = new ValidationContext(user);
+        Validator.ValidateObject(user, context, validateAllProperties: true);
+
+        var existingUser = _dataAccess.GetAll<User>()
+        .SingleOrDefault(u => u.Email == user.Email);
+
+        if (existingUser != null)
+            throw new ValidationException("Email already exists.");
+
         _dataAccess.Create(user);
+
+        return true;
     }
 
-    public void UpdateUser(User user)
+    public bool UpdateUser(User user)
     {
+        var existingUser = GetAll().SingleOrDefault(u => u.Id == user.Id);
+
+        if (existingUser == null)
+            throw new ArgumentException($"User with ID {user.Id} not found.");
+
+        var existingEmail = _dataAccess.GetAll<User>()
+        .SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
+
+        if (existingEmail != null)
+            throw new ValidationException("Email already exists.");
+
+        existingUser.Forename = user.Forename;
+        existingUser.Surname = user.Surname;
+        existingUser.Email = user.Email;
+        existingUser.IsActive = user.IsActive;
+        existingUser.DateOfBirth = user.DateOfBirth;
+
         _dataAccess.Update(user);
+
+        return true;
     }
 
-    public void DeleteUser(User user)
+    public bool DeleteUser(long id)
     {
+        var user = GetAll().FirstOrDefault(p => p.Id == id);
+
+        if (user == null)
+        {
+            throw new ArgumentException("$User with ID {Id} not found.");
+        }
+
         _dataAccess.Delete(user);
+
+        return true;
     }
 }

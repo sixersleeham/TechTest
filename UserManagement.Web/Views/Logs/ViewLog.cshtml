@@ -1,0 +1,41 @@
+﻿@model UserManagement.Web.Models.Logs.UserLogEntryItemViewModel
+
+<h2>Logs</h2>
+
+<div class="table-responsive">
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Id</th>
+				<th>User Id</th>
+				<th>Owner</th>
+				<th>Action</th>
+				<th>Change</th>
+				<th>Time Stamp</th>
+				<th style="width: 1px;"></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>
+					@Model.Id
+				</td>
+				<td>
+					@Model.UserId
+				</td>
+				<td>
+					@Model.Owner
+				</td>
+				<td>
+					@Model.Action
+				</td>
+				<td>
+					<pre>@Model.Change</pre>
+				</td>
+				<td>
+					@Model.TimeStamp.ToString()
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

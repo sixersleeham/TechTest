@@ -43,9 +43,10 @@
                                 Actions
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="btnToggleActions">
-                                <li><a asp-controller="Users" asp-action="ViewUser" asp-route-id="@item.Id" class="dropdown-item">View</a></li>
+                                <li><a asp-controller="users" asp-action="ViewUser" asp-route-id="@item.Id" class="dropdown-item">View</a></li>
 								<li><a asp-controller="users" asp-action="Edit" asp-route-id="@item.Id" class="dropdown-item">Edit</a></li>
-								<li><a a asp-controller="users" asp-action="Delete" asp-route-id="@item.Id" class="dropdown-item">Delete</a></li>
+								<li><a asp-controller="users" asp-action="Delete" asp-route-id="@item.Id" class="dropdown-item">Delete</a></li>
+								<li><a asp-controller="logs" asp-action="UsersLogs" asp-route-id="@item.Id" class="dropdown-item">Logs</a></li>
                             </ul>
                         </div>
                     </td>
