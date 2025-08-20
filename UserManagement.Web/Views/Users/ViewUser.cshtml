@@ -1,6 +1,6 @@
 ﻿@model UserManagement.Web.Models.Users.UserDetailsViewModel
 
-<h2> View User</h2>
+<h2>User</h2>
 
 
 <div class="table-responsive">
@@ -36,19 +36,19 @@
                         @(Model.User.IsActive ? "Yes" : "No")
                     </td>
                     <td>
-                        @(Model.User.DateOfBirth.ToString("dd/MM/yyyy"))
+                        @(Model.User.DateOfBirth?.ToString("dd/MM/yyyy"))
                     </td>
-				<td>
-					<div class="dropdown">
-						<button type="button" class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleActions">
-							Actions
-						</button>
-						<ul class="dropdown-menu" aria-labelledby="btnToggleActions">
-							<li><a asp-controller="users" asp-action="Edit" asp-route-id="@Model.User.Id" class="dropdown-item">Edit</a></li>
-							<li><a asp-controller="users" asp-action="Delete" asp-route-id="@Model.User.Id" class="dropdown-item">Delete</a></li>
-						</ul>
-					</div>
-				</td>
+					<td>
+						<div class="dropdown">
+							<button type="button" class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleActions">
+								Actions
+							</button>
+							<ul class="dropdown-menu" aria-labelledby="btnToggleActions">
+								<li><a asp-controller="users" asp-action="Edit" asp-route-id="@Model.User.Id" class="dropdown-item">Edit</a></li>
+								<li><a asp-controller="users" asp-action="Delete" asp-route-id="@Model.User.Id" class="dropdown-item">Delete</a></li>
+							</ul>
+						</div>
+					</td>
 				</tr>
 		</tbody>
 	</table>

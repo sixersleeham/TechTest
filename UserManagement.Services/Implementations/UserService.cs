@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using UserManagement.Data;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Interfaces;
+using ValidationResult = UserManagement.Service.Results.ValidationResult;
 
 
 namespace UserManagement.Services.Domain.Implementations;
@@ -39,7 +39,7 @@ public class UserService : IUserService
        return users.ToList();
     }
 
-    public async Task<bool> AddUserAsync(User? user)
+    public async Task<ValidationResult> AddUserAsync(User? user)
     {
         if(user == null)
             throw new ArgumentNullException(nameof(user));
@@ -53,14 +53,14 @@ public class UserService : IUserService
         .FirstOrDefault();
 
         if (existingUser != null)
-            throw new ValidationException("Email already exists.");
+            return ValidationResult.Fail("Email already exists");
 
         await _dataAccess.Create(user);
 
-        return true;
+        return ValidationResult.Success();
     }
 
-    public async Task<bool> UpdateUserAsync(User user)
+    public async Task<ValidationResult> UpdateUserAsync(User user)
     {
         var context = new ValidationContext(user);
         Validator.ValidateObject(user, context, validateAllProperties: true);
@@ -74,7 +74,7 @@ public class UserService : IUserService
         var existingEmail = existingUsers?.SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
 
         if (existingEmail != null)
-            throw new ValidationException("Email already exists.");
+            return ValidationResult.Fail("Email Already Exists");
 
         existingUser.Forename = user.Forename;
         existingUser.Surname = user.Surname;
@@ -84,7 +84,7 @@ public class UserService : IUserService
 
         await _dataAccess.Update(user);
 
-        return true;
+        return ValidationResult.Success();
     }
 
     public async Task<bool> DeleteUserAsync(long id)

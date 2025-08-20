@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using UserManagement.Models;
+using ValidationResult = UserManagement.Service.Results.ValidationResult;
 
 namespace UserManagement.Services.Domain.Interfaces;
 
@@ -14,7 +15,7 @@ public interface IUserService
     Task<List<User>> FilterByActiveAsync(bool isActive);
     Task<User?> FilterByIdAsync(long id);
     Task<List<User>> GetAllAsync();
-    Task<bool> AddUserAsync(User user);
-    Task<bool> UpdateUserAsync(User user);
+    Task<ValidationResult> AddUserAsync(User user);
+    Task<ValidationResult> UpdateUserAsync(User user);
     Task<bool> DeleteUserAsync(long id);
 }

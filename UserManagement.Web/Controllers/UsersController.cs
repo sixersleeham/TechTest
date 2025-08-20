@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading.Tasks;
 using UserManagement.Models;
+using UserManagement.Service.Results;
 using UserManagement.Services.Domain.Interfaces;
 using UserManagement.Services.Interfaces;
 using UserManagement.Web.Models.Logs;
@@ -40,7 +41,7 @@ public class UsersController : Controller
 
         var model = new UserListViewModel
         {
-            Items = items.ToList()
+            Items = items.OrderBy(p => p.Id).ToList(),
         };
 
         return View(model);
@@ -98,10 +99,15 @@ public class UsersController : Controller
         existingUser.IsActive = model.IsActive;
         existingUser.DateOfBirth = model.DateOfBirth;
 
-        bool wasUpdated = await _userService.UpdateUserAsync(existingUser);
+        ValidationResult validationResult = await _userService.UpdateUserAsync(existingUser);
 
-        if(wasUpdated)
+        if(validationResult.IsValid)
             AddNewLog(model.Id, "Edit", changeLog);
+        else
+        {
+            ModelState.AddModelError(string.Empty, validationResult.ErrorMessage ?? "An unknown error occurred.");
+            return View();
+        }
 
         return Redirect("/users");
     }
@@ -152,10 +158,17 @@ public class UsersController : Controller
         };
 
 
-        bool wasCreated = await _userService.AddUserAsync(newUser);
+        ValidationResult validationResult = await _userService.AddUserAsync(newUser);
 
-        if(wasCreated)
+        if (validationResult.IsValid)
+        {
             AddNewLog(maxId, "Add", $"Added User {model.Forename} {model.Surname}");
+        }
+        else
+        {
+            ModelState.AddModelError(string.Empty, validationResult.ErrorMessage ?? "An unknown error occurred.");
+            return View();
+        }
 
         return Redirect("/users");
     }

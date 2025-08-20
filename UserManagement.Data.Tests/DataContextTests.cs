@@ -17,7 +17,8 @@ public class DataContextTests
         {
             Forename = "Brand New",
             Surname = "User",
-            Email = "brandnewuser@example.com"
+            Email = "brandnewuser@example.com",
+            DateOfBirth = new DateTime(2020, 01, 01)
         };
         await context.Create(entity);
 

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Models;
+using UserManagement.Service.Results;
 using UserManagement.Services.Domain.Implementations;
 using UserManagement.Services.Domain.Interfaces;
 using UserManagement.Services.Interfaces;
@@ -111,6 +112,7 @@ public class UserControllerTests
         var controller = CreateController();
 
         _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(users.First);
+        _userService.Setup(u => u.UpdateUserAsync(It.Is<User>(u => u.Email.Contains("@")))).ReturnsAsync(ValidationResult.Success);
 
         UserListItemViewModel newUser = new UserListItemViewModel()
         {
@@ -205,7 +207,7 @@ public class UserControllerTests
 
 
         _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(existingUser);
-        _userService.Setup(s => s.UpdateUserAsync(It.IsAny<User>())).ReturnsAsync(true);
+        _userService.Setup(s => s.UpdateUserAsync(It.IsAny<User>())).ReturnsAsync(ValidationResult.Success);
         _userLogService.Setup(s => s.AddLogAsync(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
 
         var controller = CreateController();
@@ -393,7 +395,7 @@ public class UserControllerTests
 
         Log? capturedLog = null;
 
-        _userService.Setup(u => u.AddUserAsync(It.IsAny<User>())).ReturnsAsync(true);
+        _userService.Setup(u => u.AddUserAsync(It.IsAny<User>())).ReturnsAsync(ValidationResult.Success);
         _userLogService.Setup(s => s.AddLogAsync(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
 
         var controller = CreateController();

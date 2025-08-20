@@ -1,6 +1,6 @@
 ﻿@model UserManagement.Web.Models.Users.UserListItemViewModel
 
-<h2> Delete User</h2>
+<h2>Delete User</h2>
 
 
 <div class="table-responsive">
@@ -20,7 +20,7 @@
 		<tbody>
 				<tr>
 					<td>
-						"@Model.Id"
+						@Model.Id
 					</td>
 					<td>
 						@Model.Forename
@@ -35,7 +35,7 @@
 						@(Model.IsActive ? "Yes" : "No")
 					</td>
 					<td>
-						@Model.DateOfBirth.ToString("dd/MM/yyyy")
+						@Model.DateOfBirth?.ToString("dd/MM/yyyy")
 					</td>
 				</tr>
 		</tbody>

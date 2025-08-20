@@ -23,5 +23,5 @@ public class UserListItemViewModel
     public bool IsActive { get; set; }
     [Required(ErrorMessage = "Date of Birth is required")]
     [DataType(DataType.Date)]
-    public DateTime DateOfBirth { get; set; }
+    public DateTime? DateOfBirth { get; set; }
 }

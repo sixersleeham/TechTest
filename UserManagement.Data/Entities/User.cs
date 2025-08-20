@@ -26,5 +26,5 @@ public class User
 
     [Required(ErrorMessage = "Date of Birth is required")]
     [DataType(DataType.Date)]
-    public DateTime DateOfBirth { get; set; }
+    public DateTime? DateOfBirth { get; set; }
 }

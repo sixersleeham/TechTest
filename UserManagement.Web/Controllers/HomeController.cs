@@ -3,5 +3,5 @@
 public class HomeController : Controller
 {
     [HttpGet]
-    public IActionResult Index() => RedirectToAction("List", "Users");
+    public IActionResult Index() => View();
 }

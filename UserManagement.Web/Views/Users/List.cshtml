@@ -35,7 +35,7 @@
                         @(item.IsActive ? "Yes" : "No")
                     </td>
                     <td>
-                        @(item.DateOfBirth.ToString("dd/MM/yyyy"))
+                        @(item.DateOfBirth?.ToString("dd/MM/yyyy"))
                     </td>
                     <td>
                         <div class="dropdown">

@@ -68,7 +68,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task AddUser_EmailAlreadyExists_ShouldThrowValidationException()
+    public async Task AddUser_EmailAlreadyExists_ShouldReturnValidatioNResultFail()
     {
         List<User> MockList = new List<User>
         {
@@ -81,8 +81,10 @@ public class UserServiceTests
 
         var service = CreateService();
 
-        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.AddUserAsync(newUser));
-        Assert.Contains("Email", ex.Message);
+        var result = await service.AddUserAsync(newUser);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("Email", result.ErrorMessage);
     }
 
     [Fact]
@@ -146,7 +148,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task UpdateUser_EmailAlreadyExists_ShouldThrowValidationException()
+    public async Task UpdateUser_EmailAlreadyExists_ShouldReturnInvalidValidationResult()
     {
         List<User> MockList = new List<User>
         {
@@ -160,8 +162,10 @@ public class UserServiceTests
 
         var service = CreateService();
 
-        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.UpdateUserAsync(newUser));
-        Assert.Contains("Email", ex.Message);
+        var result = await service.UpdateUserAsync(newUser);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("Email", result.ErrorMessage);
     }
 
     [Fact]
