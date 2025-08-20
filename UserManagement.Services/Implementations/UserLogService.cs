@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using UserManagement.Data;
 using UserManagement.Models;
 using UserManagement.Services.Interfaces;
@@ -12,7 +14,7 @@ public class UserLogService : IUserLogService
     private readonly IDataContext _dataAccess;
     public UserLogService(IDataContext dataAccess) => _dataAccess = dataAccess;
 
-    public void AddLog(Log? log)
+    public async Task AddLogAsync(Log? log)
     {
         if(log == null)
             throw new ArgumentNullException(nameof(log));
@@ -24,26 +26,33 @@ public class UserLogService : IUserLogService
         var context = new ValidationContext(log);
         Validator.ValidateObject(log, context, validateAllProperties: true);
 
-        _dataAccess.Create(log);
+        await _dataAccess.Create(log);
     }
 
-    public IEnumerable<Log> FilterAllByAction(string action)
+    public async Task<List<Log>> FilterAllByActionAsync(string action)
     {
         if (string.IsNullOrWhiteSpace(action))
             throw new ArgumentException("Action must be provided.", nameof(action));
-
-        return _dataAccess.GetAll<Log>().Where(p => p.Action == action).OrderByDescending(l => l.TimeStamp);
+        var logs = await _dataAccess.GetAllAsync<Log>();
+        return logs.Where(p => p.Action == action).OrderByDescending(l => l.TimeStamp).ToList();
     }
 
-    public IEnumerable<Log> FilterAllByUserId(long id) => GetAll().Where(p => p.UserId == id);
-    public IEnumerable<Log> GetAll() => _dataAccess.GetAll<Log>();
+    public async Task<Log?> FilterAllByIdAsync(long id) => await _dataAccess.GetAll<Log>().FirstOrDefaultAsync(p => p.Id == id);
+    public async Task<List<Log>> FilterAllByUserIdAsync(long id)
+    {
+        var logs = await _dataAccess.GetAllAsync<Log>();
+        return logs.Where(p => p.UserId == id).ToList();
+    }
+   
+    public async Task<List<Log>> GetAllAsync() => await _dataAccess.GetAllAsync<Log>();
 
-    public IEnumerable<Log> GetPaged(int page, int pageSize) {
+    public async Task<List<Log>> GetPagedAsync(int page, int pageSize) {
 
         if(page <= 0 || pageSize <= 0)
             throw new ArgumentException("Page and page size must be greater than 0");
 
-        return GetAll().OrderByDescending(l => l.TimeStamp)
+        var pagedLogs = await _dataAccess.GetAllAsync<Log>();
+        return pagedLogs.OrderByDescending(l => l.TimeStamp)
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .ToList();

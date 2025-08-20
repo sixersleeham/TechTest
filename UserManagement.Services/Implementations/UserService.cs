@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using UserManagement.Data;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Interfaces;
+
 
 namespace UserManagement.Services.Domain.Implementations;
 
@@ -18,14 +21,25 @@ public class UserService : IUserService
     /// </summary>
     /// <param name="isActive"></param>
     /// <returns></returns>
-    public IEnumerable<User> FilterByActive(bool isActive)
+    public async Task<List<User>> FilterByActiveAsync(bool isActive)
     {
-        return _dataAccess.GetAll<User>().Where(p => p.IsActive == isActive);
+        var users = await _dataAccess.GetAllAsync<User>();
+        return users.Where(p => p.IsActive == isActive).ToList();
     }
 
-    public IEnumerable<User> GetAll() => _dataAccess.GetAll<User>();
+    public async Task<User?> FilterByIdAsync(long id)
+    {
+        var users = await _dataAccess.GetAllAsync<User>();
+        return users.SingleOrDefault(p => p.Id == id);
+    }
 
-    public bool AddUser(User? user)
+    public async Task<List<User>> GetAllAsync()
+    {
+       var users = await _dataAccess.GetAllAsync<User>();
+       return users.ToList();
+    }
+
+    public async Task<bool> AddUserAsync(User? user)
     {
         if(user == null)
             throw new ArgumentNullException(nameof(user));
@@ -33,30 +47,31 @@ public class UserService : IUserService
         var context = new ValidationContext(user);
         Validator.ValidateObject(user, context, validateAllProperties: true);
 
-        var existingUser = _dataAccess.GetAll<User>()
-        .SingleOrDefault(u => u.Email == user.Email);
+        var existingUsers = await _dataAccess.GetAllAsync<User>();
+        var existingUser = existingUsers
+        .Where(u => u.Email == user.Email)
+        .FirstOrDefault();
 
         if (existingUser != null)
             throw new ValidationException("Email already exists.");
 
-        _dataAccess.Create(user);
+        await _dataAccess.Create(user);
 
         return true;
     }
 
-    public bool UpdateUser(User user)
+    public async Task<bool> UpdateUserAsync(User user)
     {
-        var allUsers = GetAll();
-
         var context = new ValidationContext(user);
         Validator.ValidateObject(user, context, validateAllProperties: true);
 
-        var existingUser = allUsers.SingleOrDefault(u => u.Id == user.Id);
+        var existingUsers = await _dataAccess.GetAllAsync<User>();
+        var existingUser = existingUsers?.SingleOrDefault(u => u.Id == user.Id);
 
         if (existingUser == null)
             throw new ArgumentException($"User with ID {user.Id} not found.");
 
-        var existingEmail = allUsers.SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
+        var existingEmail = existingUsers?.SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
 
         if (existingEmail != null)
             throw new ValidationException("Email already exists.");
@@ -67,22 +82,22 @@ public class UserService : IUserService
         existingUser.IsActive = user.IsActive;
         existingUser.DateOfBirth = user.DateOfBirth;
 
-        _dataAccess.Update(user);
+        await _dataAccess.Update(user);
 
         return true;
     }
 
-    public bool DeleteUser(long id)
+    public async Task<bool> DeleteUserAsync(long id)
     {
-        var users = GetAll();
-        var userToDelete = users.FirstOrDefault(p => p.Id == id);
+        var users = await _dataAccess.GetAllAsync<User>();
+        var user = users?.FirstOrDefault(u => u.Id == id);
 
-        if (userToDelete == null)
+        if (user == null)
         {
             throw new ArgumentException($"User with ID {id} not found.");
         }
 
-        _dataAccess.Delete(userToDelete);
+        await _dataAccess.Delete(user);
 
         return true;
     }

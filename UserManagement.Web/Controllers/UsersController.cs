@@ -1,6 +1,6 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Interfaces;
 using UserManagement.Services.Interfaces;
@@ -21,10 +21,12 @@ public class UsersController : Controller
     }
 
     [HttpGet("")]
-    public ViewResult List(string? status)
+    public async Task<ViewResult> List(string? status)
     {
-        var users = (status == "active" || status == "inactive") ?
-            _userService.FilterByActive(status == "active") : _userService.GetAll();
+        Task<List<User>> userTask = (status == "active" || status == "inactive") ?
+            _userService.FilterByActiveAsync(status == "active") : _userService.GetAllAsync();
+
+        var users = await userTask;
 
         var items = users.Select(p => new UserListItemViewModel
         {
@@ -45,10 +47,10 @@ public class UsersController : Controller
     }
 
     [HttpGet("users/viewuser/{id}")]
-    public IActionResult ViewUser(long id)
+    public async Task<IActionResult> ViewUser(long id)
     {
-        var model = GetUserModelById(id);
-        var logs = _userLogService.FilterAllByUserId(id);
+        var model = await GetUserModelById(id);
+        var logs = await _userLogService.FilterAllByUserIdAsync(id);
 
         if (model == null)
             return NotFound();
@@ -58,16 +60,16 @@ public class UsersController : Controller
         var userDetails = new UserDetailsViewModel
         {
             User = model,
-            Logs = GetLogEntryModelById(id)
+            Logs = await GetLogEntryModelById(id)
         };
 
         return View(userDetails);
     }
 
     [HttpGet("edit/{id}")]
-    public IActionResult Edit(long id)
+    public async Task<IActionResult> Edit(long id)
     {
-        var model = GetUserModelById(id);
+        var model = await GetUserModelById(id);
 
         if (model == null)
             return NotFound();
@@ -76,14 +78,14 @@ public class UsersController : Controller
     }
 
     [HttpPost("edit/{id}")]
-    public IActionResult Edit(UserListItemViewModel model)
+    public async Task<IActionResult> Edit(UserListItemViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var existingUser = _userService.GetAll().SingleOrDefault(u => u.Id == model.Id);
+        var existingUser = await _userService.FilterByIdAsync(model.Id);
 
         if (existingUser == null)
             return NotFound();
@@ -96,7 +98,7 @@ public class UsersController : Controller
         existingUser.IsActive = model.IsActive;
         existingUser.DateOfBirth = model.DateOfBirth;
 
-        bool wasUpdated = _userService.UpdateUser(existingUser);
+        bool wasUpdated = await _userService.UpdateUserAsync(existingUser);
 
         if(wasUpdated)
             AddNewLog(model.Id, "Edit", changeLog);
@@ -105,9 +107,9 @@ public class UsersController : Controller
     }
 
     [HttpGet("delete/{id}")]
-    public IActionResult Delete(long id)
+    public async Task<IActionResult> Delete(long id)
     {
-        var model = GetUserModelById(id);
+        var model = await GetUserModelById(id);
 
         if (model == null)
             return NotFound();
@@ -116,9 +118,9 @@ public class UsersController : Controller
     }
 
     [HttpPost("delete/{id}")]
-    public IActionResult DeleteUser(long id)
+    public async Task<IActionResult> DeleteUser(long id)
     {
-        bool wasDeleted = _userService.DeleteUser(id);
+        bool wasDeleted = await _userService.DeleteUserAsync(id);
 
         if(wasDeleted)
             AddNewLog(id, "Delete", "User Deleted");
@@ -130,14 +132,15 @@ public class UsersController : Controller
     public ViewResult Add() => View();
 
     [HttpPost("add")]
-    public IActionResult Add(UserListItemViewModel model)
+    public async Task<IActionResult> Add(UserListItemViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var maxId = (_userService.GetAll().Max(u => (long?)u.Id) ?? 0) + 1;
+        var users = await _userService.GetAllAsync();
+        var maxId = (users.Max(u => (long?)u.Id) ?? 0) + 1;
 
         var newUser = new User
         {
@@ -149,7 +152,7 @@ public class UsersController : Controller
         };
 
 
-        bool wasCreated = _userService.AddUser(newUser);
+        bool wasCreated = await _userService.AddUserAsync(newUser);
 
         if(wasCreated)
             AddNewLog(maxId, "Add", $"Added User {model.Forename} {model.Surname}");
@@ -157,9 +160,9 @@ public class UsersController : Controller
         return Redirect("/users");
     }
 
-    private UserListItemViewModel? GetUserModelById(long id)
+    private async Task<UserListItemViewModel?> GetUserModelById(long id)
     {
-        var user = _userService.GetAll().FirstOrDefault(p => p.Id == id);
+        var user = await _userService.FilterByIdAsync(id);
 
         if (user == null)
             return null;
@@ -177,9 +180,9 @@ public class UsersController : Controller
         return item;
     }
 
-    private List<UserLogEntryItemViewModel> GetLogEntryModelById(long id)
+    private async Task<List<UserLogEntryItemViewModel>> GetLogEntryModelById(long id)
     {
-        var logs = _userLogService.FilterAllByUserId(id) ?? Enumerable.Empty<Log>();
+        var logs = await _userLogService.FilterAllByUserIdAsync(id) ?? Enumerable.Empty<Log>();
 
         return logs.Select(log => new UserLogEntryItemViewModel
         {
@@ -192,7 +195,7 @@ public class UsersController : Controller
         }).ToList();
     }
 
-    private void AddNewLog(long userId, string action, string change)
+    private async void AddNewLog(long userId, string action, string change)
     {
         var newLog = new Log
         {
@@ -202,7 +205,7 @@ public class UsersController : Controller
             Change = change,
         };
 
-        _userLogService.AddLog(newLog);
+        await _userLogService.AddLogAsync(newLog);
     }
 
     private string BuildEditChangeLog(User currentUser, UserListItemViewModel updatedUser)

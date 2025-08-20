@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using FluentAssertions;
+using System.Threading.Tasks;
 using UserManagement.Models;
 
 namespace UserManagement.Data.Tests;
@@ -8,7 +8,7 @@ namespace UserManagement.Data.Tests;
 public class DataContextTests
 {
     [Fact]
-    public void GetAll_WhenNewEntityAdded_MustIncludeNewEntity()
+    public async Task GetAll_WhenNewEntityAdded_MustIncludeNewEntity()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var context = CreateContext();
@@ -19,10 +19,10 @@ public class DataContextTests
             Surname = "User",
             Email = "brandnewuser@example.com"
         };
-        context.Create(entity);
+        await context.Create(entity);
 
         // Act: Invokes the method under test with the arranged parameters.
-        var result = context.GetAll<User>();
+        var result = await context.GetAllAsync<User>();
 
         // Assert: Verifies that the action of the method under test behaves as expected.
         result
@@ -31,34 +31,34 @@ public class DataContextTests
     }
 
     [Fact]
-    public void GetAll_WhenDeleted_MustNotIncludeDeletedEntity()
+    public async Task GetAll_WhenDeleted_MustNotIncludeDeletedEntity()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var context = CreateContext();
         var entity = context.GetAll<User>().First();
-        context.Delete(entity);
+        await context.Delete(entity);
 
         // Act: Invokes the method under test with the arranged parameters.
-        var result = context.GetAll<User>();
+        var result = await context.GetAllAsync<User>();
 
         // Assert: Verifies that the action of the method under test behaves as expected.
         result.Should().NotContain(s => s.Email == entity.Email);
     }
 
     [Fact]
-    public void GetAll_WhenCalled_ShouldReturnQueryableOfCorrectType()
+    public async Task GetAll_WhenCalled_ShouldReturnQueryableOfCorrectType()
     {
         var context = CreateContext();
-        var users = context.GetAll<Log>();
+        var users = await context.GetAllAsync<Log>();
 
         users.Should().AllBeAssignableTo<Log>();
     }
 
     [Fact]
-    public void GetAll_WhenCalledForLogs_ShouldReturnSeededLogs()
+    public async Task GetAll_WhenCalledForLogs_ShouldReturnSeededLogs()
     {
         var context = CreateContext();
-        var logs = context.GetAll<Log>();
+        var logs = await context.GetAllAsync<Log>();
 
         logs.Should().NotBeEmpty();
         logs.Should().Contain(l => l.Action == "Add");
@@ -66,45 +66,47 @@ public class DataContextTests
 
 
     [Fact]
-    public void Update_WhenCalled_ShouldPersistChanges()
+    public async Task Update_WhenCalled_ShouldPersistChanges()
     {
         var context = CreateContext();
-        var user = context.GetAll<User>().First();
 
-        user.Forename = "Updated";
-        context.Update(user);
+        var user = await context.GetAllAsync<User>();
 
-        var updatedUser = context.GetAll<User>().Single(u => u.Id == user.Id);
+        user.First().Forename = "Updated";
+        await context.Update(user.First());
+
+        var allUsers = await context.GetAllAsync<User>();
+        var updatedUser = allUsers.Single(u => u.Id == user.First().Id);
         updatedUser.Forename.Should().Be("Updated");
     }
 
     [Fact]
-    public void Create_WhenEntityIsNull_ShouldThrowArgumentNullException()
+    public async Task Create_WhenEntityIsNull_ShouldThrowArgumentNullException()
     {
         var context = CreateContext();
-        Action act = () => context.Create<User>(null!);
+        Func<Task> act = async () => await context.Create<User>(null!);
 
-        act.Should().Throw<ArgumentNullException>()
+        await act.Should().ThrowAsync<ArgumentNullException>()
            .WithParameterName("entity");
     }
 
     [Fact]
-    public void Update_WhenEntityIsNull_ShouldThrowArgumentNullException()
+    public async Task Update_WhenEntityIsNull_ShouldThrowArgumentNullException()
     {
         var context = CreateContext();
-        Action act = () => context.Update<User>(null!);
+        Func<Task> act = async () => await context.Update<User>(null!);
 
-        act.Should().Throw<ArgumentNullException>()
+        await act.Should().ThrowAsync<ArgumentNullException>()
            .WithParameterName("entity");
     }
 
     [Fact]
-    public void Delete_WhenEntityIsNull_ShouldThrowArgumentNullException()
+    public async Task Delete_WhenEntityIsNull_ShouldThrowArgumentNullException()
     {
         var context = CreateContext();
-        Action act = () => context.Delete<User>(null!);
+        Func<Task> act = async () => await context.Delete<User>(null!);
 
-        act.Should().Throw<ArgumentNullException>()
+        await act.Should().ThrowAsync<ArgumentNullException>()
            .WithParameterName("entity");
     }
 

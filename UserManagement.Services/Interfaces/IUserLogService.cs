@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using UserManagement.Models;
 
 namespace UserManagement.Services.Interfaces;
 public interface IUserLogService
 {
-    IEnumerable<Log> GetAll();
-    IEnumerable<Log> FilterAllByUserId(long id);
-    IEnumerable<Log> FilterAllByAction(string action);
-    void AddLog(Log log);
-    IEnumerable<Log> GetPaged(int page, int pageSize);
+    Task<List<Log>> GetAllAsync();
+    Task<List<Log>> FilterAllByUserIdAsync(long id);
+    Task<Log?> FilterAllByIdAsync(long id);
+    Task<List<Log>> FilterAllByActionAsync(string action);
+    Task AddLogAsync(Log log);
+    Task<List<Log>> GetPagedAsync(int page, int pageSize);
 }

@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime;
-using Microsoft.AspNetCore.Http.HttpResults;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Models;
@@ -17,14 +16,14 @@ namespace UserManagement.Data.Tests;
 public class UserControllerTests
 {
     [Fact]
-    public void List_WhenServiceReturnsUsers_ModelMustContainUsers()
+    public async Task List_WhenServiceReturnsUsers_ModelMustContainUsers()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var controller = CreateController();
         var users = SetupUsers();
 
         // Act: Invokes the method under test with the arranged parameters.
-        var result = controller.List("");
+        var result = await controller.List("");
 
         // Assert: Verifies that the action of the method under test behaves as expected.
         result.Model
@@ -33,12 +32,14 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void ViewUser_WhenServiceReturnsUserDetailsModel_ModelMustContainerUserWithMatchingId()
+    public async Task ViewUser_WhenServiceReturnsUserDetailsModel_ModelMustContainerUserWithMatchingId()
     {
         var controller = CreateController();
         var users = SetupUsers();
 
-        var result = controller.ViewUser(1);
+        _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(users.First);
+
+        var result = await controller.ViewUser(1);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<UserDetailsViewModel>(viewResult.Model);
@@ -47,12 +48,14 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void ViewUser_WhenServiceReturnsUserDetailsModel_ShouldReturnLogsThatCorrespondToUser()
+    public async Task ViewUser_WhenServiceReturnsUserDetailsModel_ShouldReturnLogsThatCorrespondToUser()
     {
         var users = SetupUsers();
         var controller = CreateController();
 
-        var result = controller.ViewUser(1);
+        _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(users.First);
+
+        var result = await controller.ViewUser(1);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<UserDetailsViewModel>(viewResult.Model);
@@ -61,25 +64,27 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void ViewUser_WhenUserNotExistInDatabase_ThrowNotFound()
+    public async Task ViewUser_WhenUserNotExistInDatabase_ThrowNotFound()
     {
         var users = SetupUsers();
         var controller = CreateController();
 
-        var result = controller.ViewUser(11);
+        var result = await controller.ViewUser(11);
 
         var viewResult = Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void EditGet_WhenServiceReturnsUser_ModelMustContainUser()
+    public async Task EditGet_WhenServiceReturnsUser_ModelMustContainUser()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var controller = CreateController();
         var users = SetupUsers();
 
+        _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(users.First);
+
         // Act: Invokes the method under test with the arranged parameters.
-        var result = controller.Edit(1);
+        var result = await controller.Edit(1);
 
         // Assert: Verifies that the action of the method under test behaves as expected.
         var viewResult = Assert.IsType<ViewResult>(result);
@@ -89,21 +94,23 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void EditGet_WhenUserNotExistInDatabase_ThrowNotFound()
+    public async Task EditGet_WhenUserNotExistInDatabase_ThrowNotFound()
     {
         var users = SetupUsers();
         var controller = CreateController();
 
-        var result = controller.Edit(11);
+        var result = await controller.Edit(11);
 
         var viewResult = Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void EditPost_WhenUserExistsInDatabaseAndCorrectModel_ShouldUpdateUserInDatabase()
+    public async Task EditPost_WhenUserExistsInDatabaseAndCorrectModel_ShouldUpdateUserInDatabase()
     {
         var users = SetupUsers();
         var controller = CreateController();
+
+        _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(users.First);
 
         UserListItemViewModel newUser = new UserListItemViewModel()
         {
@@ -115,7 +122,7 @@ public class UserControllerTests
             DateOfBirth = new DateTime(2025, 01, 01)
         };
 
-        controller.Edit(newUser);
+        await controller.Edit(newUser);
 
         var updatedUser = users.SingleOrDefault(u => u.Id == 1);
 
@@ -127,7 +134,7 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void EditPost_WhenIncorrectModel_ShouldReturnUserListItemViewModelType()
+    public async Task EditPost_WhenIncorrectModel_ShouldReturnUserListItemViewModelType()
     {
         var controller = CreateController();
 
@@ -143,14 +150,14 @@ public class UserControllerTests
 
         controller.ModelState.AddModelError("Forename", "Required");
 
-        var result = controller.Edit(user);
+        var result = await controller.Edit(user);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<UserListItemViewModel>(viewResult.Model);
     }
 
     [Fact]
-    public void EditPost_WhenUserDoesNotExist_ThrowNotFound()
+    public async Task EditPost_WhenUserDoesNotExist_ThrowNotFound()
     {
         var users = SetupUsers();
         var controller = CreateController();
@@ -165,13 +172,13 @@ public class UserControllerTests
             DateOfBirth = new DateTime(2025, 01, 01)
         };
 
-        var result = controller.Edit(user);
+        var result = await controller.Edit(user);
 
         Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void EditPost_WhenUserIsUpdated_ShouldAddEditLog()
+    public async Task EditPost_WhenUserIsUpdated_ShouldAddEditLog()
     {
         // Arrange
         var model = new UserListItemViewModel
@@ -197,13 +204,13 @@ public class UserControllerTests
         Log? capturedLog = null;
 
 
-        _userService.Setup(s => s.GetAll()).Returns(new[] { existingUser });
-        _userService.Setup(s => s.UpdateUser(It.IsAny<User>())).Returns(true);
-        _userLogService.Setup(s => s.AddLog(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
+        _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(existingUser);
+        _userService.Setup(s => s.UpdateUserAsync(It.IsAny<User>())).ReturnsAsync(true);
+        _userLogService.Setup(s => s.AddLogAsync(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
 
         var controller = CreateController();
 
-        controller.Edit(model);
+        await controller.Edit(model);
 
         Assert.NotNull(capturedLog);
         Assert.Equal(model.Id, capturedLog.UserId);
@@ -212,14 +219,16 @@ public class UserControllerTests
 
 
     [Fact]
-    public void DeleteGet_WhenServiceReturnsUser_ModelMustContainUser()
+    public async Task DeleteGet_WhenServiceReturnsUser_ModelMustContainUser()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var controller = CreateController();
         var users = SetupUsers();
 
+        _userService.Setup(u => u.FilterByIdAsync(1)).ReturnsAsync(users.First);
+
         // Act: Invokes the method under test with the arranged parameters.
-        var result = controller.Delete(1);
+        var result = await controller.Delete(1);
 
         // Assert: Verifies that the action of the method under test behaves as expected.
         var viewResult = Assert.IsType<ViewResult>(result);
@@ -229,20 +238,19 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void DeleteGet_WhenUserNotExistInDatabase_ThrowNotFound()
+    public async Task DeleteGet_WhenUserNotExistInDatabase_ThrowNotFound()
     {
         var users = SetupUsers();
         var controller = CreateController();
 
-        var result = controller.Delete(11);
+        var result = await controller.Delete(11);
 
         var viewResult = Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void DeletePost_WhenUserExistInDatabase_ShouldRemoveUserFromDatabase()
+    public async Task DeletePost_WhenUserExistInDatabase_ShouldRemoveUserFromDatabase()
     {
-
         var options = new DbContextOptionsBuilder<DataContext>()
             .UseInMemoryDatabase(databaseName: "DeleteUserTest")
             .Options;
@@ -274,32 +282,32 @@ public class UserControllerTests
 
         UsersController tempController = new UsersController(service, _userLogService.Object);
 
-        service.AddUser(userToRemain);
-        service.AddUser(userToDelete);
+        await service.AddUserAsync(userToRemain);
+        await service.AddUserAsync(userToDelete);
 
-        tempController.DeleteUser(2);
+        await tempController.DeleteUser(2);
 
-        var deletedUser = service.GetAll().SingleOrDefault(u => u.Id == 2);
-        var remainingUser = service.GetAll().SingleOrDefault(u => u.Id == 1);
+        var deletedUser = await service.FilterByIdAsync(2);
+        var remainingUser = await service.FilterByIdAsync(1);
 
         Assert.Null(deletedUser);
         Assert.NotNull(remainingUser);
     }
 
     [Fact]
-    public void DeletePost_WhenUserIsDeleted_ShouldAddDeleteLog()
+    public async Task DeletePost_WhenUserIsDeleted_ShouldAddDeleteLog()
     {
         // Arrange
         var users = SetupUsers();
 
         Log? capturedLog = null;
 
-        _userService.Setup(u => u.DeleteUser(1)).Returns(true);
-        _userLogService.Setup(s => s.AddLog(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
+        _userService.Setup(u => u.DeleteUserAsync(1)).ReturnsAsync(true);
+        _userLogService.Setup(s => s.AddLogAsync(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
 
         var controller = CreateController();
 
-        controller.DeleteUser(1);
+        await controller.DeleteUser(1);
 
         Assert.NotNull(capturedLog);
         Assert.Equal(1, capturedLog.UserId);
@@ -316,7 +324,7 @@ public class UserControllerTests
     }
 
     [Fact]
-    public void AddPost_WhenValidModelIsPassed_UserAddedToDatabase()
+    public async Task AddPost_WhenValidModelIsPassed_UserAddedToDatabase()
     {
         var options = new DbContextOptionsBuilder<DataContext>()
             .UseInMemoryDatabase(databaseName: "AddUserTest")
@@ -333,20 +341,20 @@ public class UserControllerTests
             Id = 1,
             Forename = "Nick",
             Surname = "Cage",
-            Email = "nick@cage",
+            Email = "nickcage@email",
             IsActive = true,
             DateOfBirth = new DateTime(2012, 01, 01)
         };
 
-        controller.Add(model);
+        await controller.Add(model);
 
-        var user = service.GetAll().SingleOrDefault(u => u.Id == 1);
+        var user = service.FilterByIdAsync(1);
 
         Assert.NotNull(user);        
     }
 
     [Fact]
-    public void AddPost_WhenIncorrectModel_ShouldReturnUserListItemViewModelType()
+    public async Task AddPost_WhenIncorrectModel_ShouldReturnUserListItemViewModelType()
     {
         var controller = CreateController();
 
@@ -362,18 +370,20 @@ public class UserControllerTests
 
         controller.ModelState.AddModelError("Forename", "Required");
 
-        var result = controller.Add(user);
+        var result = await controller.Add(user);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<UserListItemViewModel>(viewResult.Model);
     }
 
     [Fact]
-    public void AddPost_WhenUserIsDeleted_ShouldAddLog()
+    public async Task AddPost_WhenUserIsDeleted_ShouldAddLog()
     {
+        var users = SetupUsers();
+
         UserListItemViewModel user = new UserListItemViewModel()
         {
-            Id = 1,
+            Id = 2,
             Forename = "",
             Surname = "Surname",
             Email = "mail@email",
@@ -383,21 +393,21 @@ public class UserControllerTests
 
         Log? capturedLog = null;
 
-        _userService.Setup(u => u.AddUser(It.IsAny<User>())).Returns(true);
-        _userLogService.Setup(s => s.AddLog(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
+        _userService.Setup(u => u.AddUserAsync(It.IsAny<User>())).ReturnsAsync(true);
+        _userLogService.Setup(s => s.AddLogAsync(It.IsAny<Log>())).Callback<Log>(log => capturedLog = log);
 
         var controller = CreateController();
 
-        controller.Add(user);
+        await controller.Add(user);
 
         Assert.NotNull(capturedLog);
-        Assert.Equal(1, capturedLog.UserId);
+        Assert.Equal(2, capturedLog.UserId);
         Assert.Equal("Add", capturedLog.Action);
     }
 
-    private User[] SetupUsers(long id = 1, string forename = "Johnny", string surname = "User", string email = "juser@example.com", bool isActive = true)
+    private List<User> SetupUsers(long id = 1, string forename = "Johnny", string surname = "User", string email = "juser@example.com", bool isActive = true)
     {
-        var users = new[]
+        var users = new List<User>
         {
             new User
             {
@@ -409,7 +419,7 @@ public class UserControllerTests
             }
         };
 
-        var logs = new[]
+        var logs = new List<Log>
         {
             new Log
             {
@@ -423,16 +433,16 @@ public class UserControllerTests
         };
 
         _userService
-            .Setup(s => s.GetAll())
-            .Returns(users);
+            .Setup(s => s.GetAllAsync())
+            .ReturnsAsync(users);
 
         _userLogService
-            .Setup(s => s.GetAll())
-            .Returns(logs);
+            .Setup(s => s.GetAllAsync())
+            .ReturnsAsync(logs);
 
         _userLogService
-            .Setup(s => s.FilterAllByUserId(id))
-            .Returns(logs);
+            .Setup(s => s.FilterAllByUserIdAsync(id))
+            .ReturnsAsync(logs);
 
         return users;
     }

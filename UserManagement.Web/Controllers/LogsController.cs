@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using UserManagement.Services.Interfaces;
 using UserManagement.Web.Models.Logs;
 
@@ -10,12 +11,13 @@ public class LogsController : Controller
     public LogsController(IUserLogService userService) => _userLogService = userService;
 
     [HttpGet]
-    public ViewResult List(int page = 1, int pageSize = 20)
+    public async Task<ViewResult> List(int page = 1, int pageSize = 20)
     {
-        var totalCount = _userLogService.GetAll().Count();
-        var logs = _userLogService.GetPaged(page, pageSize);
+        var logs = await _userLogService.GetAllAsync();
+        var totalCount = logs.Count;
+        var pagedLogs = await _userLogService.GetPagedAsync(page, pageSize);
 
-        var items = logs.Select(p => new UserLogEntryItemViewModel
+        var items = pagedLogs.Select(p => new UserLogEntryItemViewModel
         {
             Id = p.Id,
             UserId = p.UserId,
@@ -35,9 +37,9 @@ public class LogsController : Controller
     }
 
     [HttpGet("/ViewLog/{id}")]
-    public ActionResult ViewLog(long id)
+    public async Task<ActionResult> ViewLog(long id)
     {
-        var log = _userLogService.GetAll().SingleOrDefault(p => p.Id == id);
+        var log = await _userLogService.FilterAllByIdAsync(id);
 
         if (log == null)
             return NotFound();
@@ -56,9 +58,9 @@ public class LogsController : Controller
     }
 
     [HttpGet("Logs/UsersLogs/{userId}")]
-    public ActionResult UsersLogs(long userId)
+    public async Task<ActionResult> UsersLogs(long userId)
     {
-        var logs = _userLogService.FilterAllByUserId(userId);
+        var logs = await _userLogService.FilterAllByUserIdAsync(userId);
 
         if (logs == null)
             return NotFound();

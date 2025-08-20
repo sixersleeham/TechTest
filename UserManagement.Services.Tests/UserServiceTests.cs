@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Implementations;
@@ -11,21 +12,21 @@ namespace UserManagement.Data.Tests;
 public class UserServiceTests
 {
     [Fact]
-    public void GetAll_WhenContextReturnsEntities_MustReturnSameEntities()
+    public async Task GetAll_WhenContextReturnsEntities_MustReturnSameEntities()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var service = CreateService();
         var users = SetupUsers();
 
         // Act: Invokes the method under test with the arranged parameters.
-        var result = service.GetAll();
+        var result = await service.GetAllAsync();
 
         // Assert: Verifies that the action of the method under test behaves as expected.
-        result.Should().BeSameAs(users);
+        result.Should().BeEquivalentTo(users);
     }
 
     [Fact]
-    public void AddUser_WhenCalled_ShouldSaveUserToDatabase()
+    public async Task AddUser_WhenCalled_ShouldSaveUserToDatabase()
     {
         var options = new DbContextOptionsBuilder<DataContext>()
             .UseInMemoryDatabase(databaseName: "AddUserTest")
@@ -37,37 +38,37 @@ public class UserServiceTests
 
         var userToAdd = SetupSingleUser(99);
 
-        service.AddUser(userToAdd);
+        await service.AddUserAsync(userToAdd);
 
-        var result = service.GetAll().SingleOrDefault(u => u.Id == userToAdd.Id);
+        var result = await service.FilterByIdAsync(userToAdd.Id);
 
         result.Should().BeEquivalentTo(userToAdd);
     }
 
     [Fact]
-    public void AddUser_WhenUserIsNull_ShouldThrowNullExceptionArgument()
+    public async Task AddUser_WhenUserIsNull_ShouldThrowNullExceptionArgument()
     {
         var service = CreateService();
 
-        Action action = () => service.AddUser(null);
+        Func<Task> action = async () => await service.AddUserAsync(null);
 
-        action.Should().Throw<ArgumentNullException>()
+        await action.Should().ThrowAsync<ArgumentNullException>()
             .WithParameterName("user");
     }
 
     [Fact]
-    public void AddUser_MissingRequiredFields_ShouldThrowValidationException()
+    public async Task AddUser_MissingRequiredFields_ShouldThrowValidationException()
     {
         var user = SetupSingleUser(email: string.Empty);
 
         var service = CreateService();
 
-        var ex = Assert.Throws<ValidationException>(() => service.AddUser(user));
+        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.AddUserAsync(user));
         Assert.Contains("Email", ex.Message);
     }
 
     [Fact]
-    public void AddUser_EmailAlreadyExists_ShouldThrowValidationException()
+    public async Task AddUser_EmailAlreadyExists_ShouldThrowValidationException()
     {
         List<User> MockList = new List<User>
         {
@@ -76,39 +77,39 @@ public class UserServiceTests
 
         var newUser = SetupSingleUser(10, "Nick", "Cage");
 
-        _dataContext.Setup(d => d.GetAll<User>()).Returns(MockList.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<User>()).ReturnsAsync(MockList);
 
         var service = CreateService();
 
-        var ex = Assert.Throws<ValidationException>(() => service.AddUser(newUser));
+        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.AddUserAsync(newUser));
         Assert.Contains("Email", ex.Message);
     }
 
     [Fact]
-    public void AddUser_IncorrectEmailFormat_ShouldThrowValidationException()
+    public async Task AddUser_IncorrectEmailFormat_ShouldThrowValidationException()
     {
         var user = SetupSingleUser(email: "roy");
 
         var service = CreateService();
 
-        var ex = Assert.Throws<ValidationException>(() => service.AddUser(user));
+        var ex = await Assert.ThrowsAsync<ValidationException>( async () => await service.AddUserAsync(user));
         Assert.Contains("Email", ex.Message);
     }
 
     [Fact]
-    public void AddUser_ForenameContainsIncorrectCharacters_ThrowValidationException()
+    public async Task AddUser_ForenameContainsIncorrectCharacters_ThrowValidationException()
     {
         var user = SetupSingleUser(forename: "R0y");
 
         var service = CreateService();
 
-        var ex = Assert.Throws<ValidationException>(() => service.AddUser(user));
+        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.AddUserAsync(user));
         Assert.Contains("Forename", ex.Message);
     }
 
 
     [Fact]
-    public void UpdateUser_UserExists_ShouldUpdateAndSaveChanges()
+    public async Task UpdateUser_UserExists_ShouldUpdateAndSaveChanges()
     {
         var service = CreateService();
         long id = 12;
@@ -120,9 +121,9 @@ public class UserServiceTests
 
         var UpdatedUser = SetupSingleUser(id, "NewForename", "NewSurname", "new@email", true);
 
-        _dataContext.Setup(s => s.GetAll<User>()).Returns(ExistingUser.AsQueryable);
+        _dataContext.Setup(s => s.GetAllAsync<User>()).ReturnsAsync(ExistingUser);
 
-        service.UpdateUser(UpdatedUser);
+        await service.UpdateUserAsync(UpdatedUser);
 
         var user = ExistingUser.SingleOrDefault(u => u.Id == id);
 
@@ -134,18 +135,18 @@ public class UserServiceTests
     }
 
     [Fact]
-    public void UpdateUser_UserNotExist_ShouldThrowArgumentException()
+    public async Task UpdateUser_UserNotExist_ShouldThrowArgumentException()
     {
         var service = CreateService();
 
         var user = SetupSingleUser();
 
-        var ex = Assert.Throws<ArgumentException>(() => service.UpdateUser(user));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await service.UpdateUserAsync(user));
         Assert.Contains("not found", ex.Message);
     }
 
     [Fact]
-    public void UpdateUser_EmailAlreadyExists_ShouldThrowValidationException()
+    public async Task UpdateUser_EmailAlreadyExists_ShouldThrowValidationException()
     {
         List<User> MockList = new List<User>
         {
@@ -155,60 +156,60 @@ public class UserServiceTests
 
         var newUser = SetupSingleUser(1, "Roy", "Waller", "nick@cage.com");
 
-        _dataContext.Setup(d => d.GetAll<User>()).Returns(MockList.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<User>()).ReturnsAsync(MockList);
 
         var service = CreateService();
 
-        var ex = Assert.Throws<ValidationException>(() => service.UpdateUser(newUser));
+        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.UpdateUserAsync(newUser));
         Assert.Contains("Email", ex.Message);
     }
 
     [Fact]
-    public void UpdateUser_IncorrectEmailFormat_ThrowValidationException()
+    public async Task UpdateUser_IncorrectEmailFormat_ThrowValidationException()
     {
         List<User> Mocklist = new List<User>{
             SetupSingleUser()
         };
 
-        _dataContext.Setup(d => d.GetAll<User>()).Returns(Mocklist.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<User>()).ReturnsAsync(Mocklist);
 
         var service = CreateService();
 
-        var existingUser = service.GetAll().SingleOrDefault(u => u.Id == 1);
+        var existingUser = await service.FilterByIdAsync(1);
 
         if (existingUser != null)
         {
             existingUser.Email = "roy";
 
-            var ex = Assert.Throws<ValidationException>(() => service.UpdateUser(existingUser));
+            var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.UpdateUserAsync(existingUser));
             Assert.Contains("Email", ex.Message);
         }
     }
 
     [Fact]
-    public void UpdateUser_ForenameContainsIncorrectCharacters_ThrowValidationException()
+    public async Task UpdateUser_ForenameContainsIncorrectCharacters_ThrowValidationException()
     {
         List<User> Mocklist = new List<User>{
             SetupSingleUser()
         };
 
-        _dataContext.Setup(d => d.GetAll<User>()).Returns(Mocklist.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<User>()).ReturnsAsync(Mocklist);
 
         var service = CreateService();
 
-        var existingUser = service.GetAll().SingleOrDefault(u => u.Id == 1);
+        var existingUser = await service.FilterByIdAsync(1);
 
         if (existingUser != null)
         {
             existingUser.Forename = "R0y";
 
-            var ex = Assert.Throws<ValidationException>(() => service.UpdateUser(existingUser));
+            var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.UpdateUserAsync(existingUser));
             Assert.Contains("Forename", ex.Message);
         }
     }
 
     [Fact]
-    public void DeleteUser_WhenUserExists_ShouldRemoveUserFromDatabase()
+    public async Task DeleteUser_WhenUserExists_ShouldRemoveUserFromDatabase()
     {
         var options = new DbContextOptionsBuilder<DataContext>()
             .UseInMemoryDatabase(databaseName: "DeleteUserTest")
@@ -218,31 +219,31 @@ public class UserServiceTests
 
         var service = new UserService(context);
 
-        var user = SetupSingleUser();
-        var secondUser = SetupSingleUser(2, "Nick", "Cage", "Nick@cage.com");
+        var user = SetupSingleUser(email: "delete@email.com");
+        var secondUser = SetupSingleUser(2, "Nick", "Cage", "NickCage@cage.com");
 
-        service.AddUser(user);
-        service.AddUser(secondUser);
+        await service.AddUserAsync(user);
+        await service.AddUserAsync(secondUser);
 
-        service.DeleteUser(user.Id);
+        await service.DeleteUserAsync(user.Id);
 
-        var deletedUser = service.GetAll().SingleOrDefault(u => u.Id == user.Id);
-        var activeUser = service.GetAll().SingleOrDefault(u => u.Id == secondUser.Id);
+        var deletedUser = await service.FilterByIdAsync(user.Id);
+        var activeUser = await service.FilterByIdAsync(secondUser.Id);
         Assert.Null(deletedUser);
         Assert.NotNull(activeUser);       
     }
 
     [Fact]
-    public void DeleteUser_WhenUserNotExist_ShouldThrowArgumentException()
+    public async Task DeleteUser_WhenUserNotExist_ShouldThrowArgumentException()
     {
         var service = CreateService();
 
-        var ex = Assert.Throws<ArgumentException>(() => service.DeleteUser(1));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await service.DeleteUserAsync(1));
         Assert.Contains("not found", ex.Message);
     }
 
     [Fact]
-    public void FilterUserByActive_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedActiveState()
+    public async Task FilterUserByActive_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedActiveState()
     {
         List<User> userList = new List<User>
         {
@@ -260,17 +261,17 @@ public class UserServiceTests
 
         var service = CreateService();
 
-        _dataContext.Setup(d => d.GetAll<User>()).Returns(userList.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<User>()).ReturnsAsync(userList);
 
-        var result = service.FilterByActive(true);
+        var result = await service.FilterByActiveAsync(true);
 
         Assert.Equal(7, result.Count());
         Assert.All(result, user => Assert.True(user.IsActive));
     }
 
-    private IQueryable<User> SetupUsers(string forename = "Johnny", string surname = "User", string email = "juser@example.com", bool isActive = true)
+    private List<User> SetupUsers(string forename = "Johnny", string surname = "User", string email = "juser@example.com", bool isActive = true)
     {
-        var users = new[]
+        var users = new List<User>
         {
             new User
             {
@@ -280,11 +281,11 @@ public class UserServiceTests
                 IsActive = isActive,
                 DateOfBirth = new DateTime(2000, 01, 01)
             }
-        }.AsQueryable();
+        };
 
         _dataContext
-            .Setup(s => s.GetAll<User>())
-            .Returns(users);
+            .Setup(s => s.GetAllAsync<User>())
+            .ReturnsAsync(users);
 
         return users;
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Data;
 using UserManagement.Models;
@@ -11,21 +12,21 @@ namespace UserManagement.Services.Tests;
 public class UserLogServiceTests
 {
     [Fact]
-    public void GetAll_WhenContextReturnsEntities_MustReturnSameEntities()
+    public async Task GetAll_WhenContextReturnsEntities_MustReturnSameEntities()
     {
         // Arrange: Initializes objects and sets the value of the data that is passed to the method under test.
         var service = CreateService();
         var logs = SetupLogs();
 
         // Act: Invokes the method under test with the arranged parameters.
-        var result = service.GetAll();
+        var result = await service.GetAllAsync();
 
         // Assert: Verifies that the action of the method under test behaves as expected.
         result.Should().BeSameAs(logs);
     }
 
     [Fact]
-    public void AddLog_WhenCalled_ShouldAddNewLogToDatabase()
+    public async Task AddLog_WhenCalled_ShouldAddNewLogToDatabase()
     {
         var options = new DbContextOptionsBuilder<DataContext>()
             .UseInMemoryDatabase(databaseName: "AddLogTest")
@@ -37,36 +38,36 @@ public class UserLogServiceTests
 
         var log = SetupSingleLog(99);
 
-        service.AddLog(log);
+        await service.AddLogAsync(log);
 
-        var result = service.GetAll().SingleOrDefault(l => l.Id == log.Id);
+        var result = await service.FilterAllByIdAsync(log.Id);
         result.Should().BeEquivalentTo(log);
     }
 
     [Fact]
-    public void AddLog_WhenLogIsNull_ShouldThrowNullExceptionArgument()
+    public async Task AddLog_WhenLogIsNull_ShouldThrowNullExceptionArgument()
     {
         var service = CreateService();
 
-        Action action = () => service.AddLog(null);
+        Func<Task> action = async () => await service.AddLogAsync(null);
 
-        action.Should().Throw<ArgumentNullException>()
+        await action.Should().ThrowAsync<ArgumentNullException>()
             .WithParameterName("log");
     }
 
     [Fact]
-    public void AddLog_MissingRequiredFields_ShouldThrowValidationException()
+    public async Task AddLog_MissingRequiredFields_ShouldThrowValidationException()
     {
         var log = SetupSingleLog(action: string.Empty);
 
         var service = CreateService();
 
-        var ex = Assert.Throws<ValidationException>(() => service.AddLog(log));
+        var ex = await Assert.ThrowsAsync<ValidationException>(async () => await service.AddLogAsync(log));
         Assert.Contains("Action", ex.Message);
     }
 
     [Fact]
-    public void FilterAllByAction_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedAction()
+    public async Task FilterAllByAction_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedAction()
     {
         List<Log> logs = new List<Log>
         {
@@ -81,22 +82,22 @@ public class UserLogServiceTests
 
         var service = CreateService();
 
-        _dataContext.Setup(d => d.GetAll<Log>()).Returns(logs.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<Log>()).ReturnsAsync(logs);
 
-        var result = service.FilterAllByAction("Add");
+        var result = await service.FilterAllByActionAsync("Add");
         Assert.All(result, log => Assert.Equal("Add", log.Action));
     }
 
     [Fact]
-    public void FilterAllByAction_WithEmptyAction_ShouldThrowArgumentException()
+    public async Task FilterAllByAction_WithEmptyAction_ShouldThrowArgumentException()
     {
         var service = CreateService();
-        var ex = Assert.Throws<ArgumentException>(() => service.FilterAllByAction(""));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await service.FilterAllByActionAsync(""));
         Assert.Contains("Action must be provided", ex.Message);
     }
 
     [Fact]
-    public void GetAllByUserId_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedAction()
+    public async Task GetAllByUserId_WhenContextReturnsEntities_ReturnsAllEntitiesWithRequestedAction()
     {
         List<Log> logs = new List<Log>
         {
@@ -111,22 +112,22 @@ public class UserLogServiceTests
         
         var service = CreateService();
        
-        _dataContext.Setup(d => d.GetAll<Log>()).Returns(logs.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<Log>()).ReturnsAsync(logs);
        
-        var result = service.FilterAllByUserId(1);
+        var result = await service.FilterAllByUserIdAsync(1);
         Assert.All(result, log => Assert.Equal(1, log.UserId));
     }
 
     [Fact]
-    public void GetPaged_WhenContextReturnsEntities_ReturnsOnlyEntitiesWithinPageBounds()
+    public async Task GetPaged_WhenContextReturnsEntities_ReturnsOnlyEntitiesWithinPageBounds()
     {
         var logs = SetupLogList(50);
 
         var service = CreateService();
 
-        _dataContext.Setup(d => d.GetAll<Log>()).Returns(logs.AsQueryable);
+        _dataContext.Setup(d => d.GetAllAsync<Log>()).ReturnsAsync(logs);
 
-        var result = service.GetPaged(2, 20);
+        var result = await service.GetPagedAsync(2, 20);
 
         Assert.Equal(20, result.Count());
         Assert.Contains(result, log => log.UserId == 30);
@@ -134,17 +135,17 @@ public class UserLogServiceTests
     }
 
     [Fact]
-    public void GetPaged_WithInvalidPageOrSize_ShouldThrowArgumentException()
+    public async Task GetPaged_WithInvalidPageOrSize_ShouldThrowArgumentException()
     {
         var service = CreateService();
 
-        var ex = Assert.Throws<ArgumentException>(() =>  service.GetPaged(0, 10));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await service.GetPagedAsync(0, 10));
         Assert.Contains("Page", ex.Message);
     }
 
-    private IQueryable<Log> SetupLogs(long id = 1, long userId = 1, string owner = "Admin", string action = "Add", string change = "Added new user")
+    private List<Log> SetupLogs(long id = 1, long userId = 1, string owner = "Admin", string action = "Add", string change = "Added new user")
     {
-        var logs = new[]
+        var logs = new List<Log>
         {
             new Log
             {
@@ -155,11 +156,11 @@ public class UserLogServiceTests
               Change = change,
               TimeStamp = DateTime.Now,
             }
-        }.AsQueryable();
+        };
 
         _dataContext
-            .Setup(s => s.GetAll<Log>())
-            .Returns(logs);
+            .Setup(s => s.GetAllAsync<Log>())
+            .ReturnsAsync(logs);
 
         return logs;
     }
