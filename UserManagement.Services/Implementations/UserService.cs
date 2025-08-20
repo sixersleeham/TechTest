@@ -49,7 +49,7 @@ public class UserService : IUserService
 
         var existingUsers = await _dataAccess.GetAllAsync<User>();
         var existingUser = existingUsers
-        .Where(u => u.Email == user.Email)
+        .Where(u => u.Email.ToLower() == user.Email.ToLower())
         .FirstOrDefault();
 
         if (existingUser != null)
@@ -71,7 +71,7 @@ public class UserService : IUserService
         if (existingUser == null)
             throw new ArgumentException($"User with ID {user.Id} not found.");
 
-        var existingEmail = existingUsers?.SingleOrDefault(u => u.Email == user.Email && u.Id != user.Id);
+        var existingEmail = existingUsers?.SingleOrDefault(u => u.Email.ToLower() == user.Email.ToLower() && u.Id != user.Id);
 
         if (existingEmail != null)
             return ValidationResult.Fail("Email Already Exists");
